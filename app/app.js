@@ -1,5 +1,8 @@
 /* ---- DON'T EDIT BELOW ---- */
-
+var Solid = require("./solid");
+var $rdf = require("rdflib");
+var SimpleMDE = require("simplemde");
+var moment = require("moment");
 var Plume = Plume || {};
 
 Plume = (function () {
@@ -355,14 +358,20 @@ Plume = (function () {
         del.classList.add("button");
         del.classList.add('danger');
         del.classList.add('float-left');
-        del.setAttribute('onclick', 'Plume.deletePost(\''+url+'\')');
+        del.addEventListener("click", function() {
+            deletePost(url);
+        })
+        // del.setAttribute('onclick', 'Plume.deletePost(\''+url+'\')');
         del.innerHTML = 'Delete';
         footer.appendChild(del);
         // delete button
         var cancel = document.createElement('button');
         cancel.classList.add('button');
         cancel.classList.add('float-right');
-        cancel.setAttribute('onclick', 'Plume.cancelDelete()');
+        // cancel.setAttribute('onclick', 'Plume.cancelDelete()');
+        cancel.addEventListener("click", function() {
+            cancelDelete();
+        });
         cancel.innerHTML = 'Cancel';
         footer.appendChild(cancel);
         div.appendChild(footer);
@@ -381,10 +390,16 @@ Plume = (function () {
                 function(done) {
                     if (done) {
                         delete posts[url];
-                        document.getElementById(url).remove();
                         document.getElementById('delete').remove();
                         notify('success', 'Successfully deleted post');
-                        resetAll(true);
+                        if (Object.keys(posts).length == 0) {
+                            // might have deleted post before going back to main blog page
+                            // so we need to refetch posts in resetAll
+                            resetAll(true);
+                        } else {
+                            // otherwise, deleted when already on main blog page,
+                            resetAll();
+                        }
                     }
                 }
             )
@@ -478,6 +493,8 @@ Plume = (function () {
         footer.appendChild(buttonList);
     }
 
+    var publishPostHandler;
+
     var showEditor = function(url) {
         if (!user.authenticated) {
             notify('all', "You must log in before creating or editing posts.");
@@ -542,7 +559,12 @@ Plume = (function () {
             }
 
             document.querySelector('.publish').innerHTML = "Update";
-            document.querySelector('.publish').setAttribute('onclick', 'Plume.publishPost(\''+url+'\')');
+            document.querySelector(".publish").removeEventListener("click", publishPostHandler);
+            publishPostHandler = function() {
+                publishPost(url);
+            }
+            document.querySelector(".publish").addEventListener("click", publishPostHandler);
+            // document.querySelector('.publish').setAttribute('onclick', 'Plume.publishPost(\''+url+'\')');
             window.history.pushState("", document.querySelector('title').value, window.location.pathname+"?edit="+encodeURIComponent(url));
         };
 
@@ -584,7 +606,12 @@ Plume = (function () {
                 document.querySelector('.editor-title').value = post.title;
             }
             document.querySelector('.publish').innerHTML = "Publish";
-            document.querySelector('.publish').setAttribute('onclick', 'Plume.publishPost()');
+            document.querySelector('.publish').removeEventListener("click", publishPostHandler);
+            publishPostHandler = function() {
+                publishPost();
+            }
+            document.querySelector('.publish').addEventListener("click", publishPostHandler);
+            // document.querySelector('.publish').setAttribute('onclick', 'Plume.publishPost()');
         }
     };
 
@@ -620,16 +647,19 @@ Plume = (function () {
         g.add($rdf.sym(''), RDF('type'), SIOC('Post'));
         g.add($rdf.sym(''), DCT('title'), $rdf.lit(post.title));
         g.add($rdf.sym(''), SIOC('has_creator'), $rdf.sym('#author'));
-        g.add($rdf.sym(''), DCT('created'), $rdf.lit(post.created, '', $rdf.Symbol.prototype.XSDdateTime));
-        g.add($rdf.sym(''), DCT('modified'), $rdf.lit(post.modified, '', $rdf.Symbol.prototype.XSDdateTime));
+        g.add($rdf.sym(''), DCT('created'), $rdf.lit(post.created, '', $rdf.NamedNode.prototype.XSDdateTime));
+        g.add($rdf.sym(''), DCT('modified'), $rdf.lit(post.modified, '', $rdf.NamedNode.prototype.XSDdateTime));
         g.add($rdf.sym(''), SIOC('content'), $rdf.lit(encodeHTML(post.body)));
 
         g.add($rdf.sym('#author'), RDF('type'), SIOC('UserAccount'));
         g.add($rdf.sym('#author'), SIOC('account_of'), $rdf.sym(post.author));
-        g.add($rdf.sym('#author'), FOAF('name'), $rdf.lit(authors[post.author].name));
-        g.add($rdf.sym('#author'), SIOC('avatar'), $rdf.sym(authors[post.author].picture));
+        var name = authors[post.author].name || "";
+        var picture = authors[post.author].picture || "";
+        g.add($rdf.sym('#author'), FOAF('name'), name);
+        g.add($rdf.sym('#author'), SIOC('avatar'), picture);
 
-        var triples = new $rdf.Serializer(g).toN3(g);
+        var s = new $rdf.Serializer(g);
+        var triples = s.toN3(g);
 
         if (url) {
             var writer = Solid.web.put(url, triples);
@@ -776,7 +806,6 @@ Plume = (function () {
                     if (!subject) {
                         subject = g.any(undefined, RDF('type'), SOLID('Notification'));
                     }
-
                     if (subject) {
                         var post = { url: subject.uri };
 
@@ -800,7 +829,7 @@ Plume = (function () {
                                 author.name = encodeHTML(name.value);
                             }
                             var picture = g.any(creator, SIOC('avatar'));
-                            if (picture) {
+                            if (picture && picture.uri) {
                                 author.picture = encodeHTML(picture.uri);
                             }
                         } else {
@@ -982,7 +1011,10 @@ Plume = (function () {
                     }
                     tagLink.innerHTML = tag.name;
                     tagLink.href = "#";
-                    tagLink.setAttribute('onclick', 'Plume.sortTag("'+tag.name+'")');
+                    tagLink.addEventListener("click", function() {
+                        sortTag(tag.name);
+                    });
+                    // tagLink.setAttribute('onclick', 'Plume.sortTag("'+tag.name+'")');
                     metaTags.appendChild(tagLink);
                 }
             }
@@ -1027,7 +1059,10 @@ Plume = (function () {
             var del = document.createElement('a');
             del.classList.add('action-button');
             del.classList.add('danger-text');
-            del.setAttribute('onclick', 'Plume.confirmDelete(\''+post.url+'\')');
+            del.addEventListener("click", function() {
+                confirmDelete(post.url);
+            });
+            // del.setAttribute('onclick', 'Plume.confirmDelete(\''+post.url+'\')');
             del.innerHTML = 'Delete';
             footer.appendChild(del);
         }
@@ -1300,17 +1335,24 @@ Plume = (function () {
         document.querySelector('.viewer').innerHTML = '';
         document.querySelector('.posts').classList.remove('hidden');
         // document.querySelector('.editor-add-tag').value = '';
-        if (posts && len(posts) === 0) {
-            if (user.authenticated) {
-                document.querySelector('.start').classList.remove('hidden');
-            } else {
-                document.querySelector('.init').classList.remove('hidden');
-            }
-        }
+        // if (posts && len(posts) === 0) {
+        //     if (user.authenticated) {
+        //         document.querySelector('.start').classList.remove('hidden');
+        //     } else {
+        //         document.querySelector('.init').classList.remove('hidden');
+        //     }
+        // }
         if (refresh) {
             showBlog(config.postsURL);
         } else {
             window.history.pushState("", document.querySelector('title').value, window.location.pathname);
+            if (posts && len(posts) === 0) {
+                if (user.authenticated) {
+                    document.querySelector('.start').classList.remove('hidden');
+                } else {
+                    document.querySelector('.init').classList.remove('hidden');
+                }
+            }
         }
     };
 
@@ -1459,6 +1501,24 @@ Plume = (function () {
     };
     http.send();
 
+    document.getElementsByClassName("login")[0].addEventListener("click", login);
+    document.getElementsByClassName("usewebid")[0].addEventListener("click", login);
+    document.getElementsByClassName("signupwebid")[0].addEventListener("click", signup);
+    document.getElementsByClassName("logout")[0].addEventListener("click", logout);
+    publishPostHandler = function() {
+        publishPost();
+    }
+    document.getElementsByClassName("publish")[0].addEventListener("click", publishPostHandler);
+    document.getElementsByClassName("preview")[0].addEventListener("click", togglePreview);
+    document.getElementsByClassName("cancel")[0].addEventListener("click", function() {
+        cancelPost();
+    });
+    document.getElementsByClassName("showEditor")[0].addEventListener("click", function() {
+        showEditor();
+    });
+    document.getElementsByClassName("questionwebid")[0].addEventListener("click", function() {
+        toggleOverlay('#webid-info');
+    });
 
 
     // return public functions
@@ -1551,4 +1611,4 @@ Plume.menu = (function() {
     }
 })();
 Plume.menu.init();
-
+module.exports = Plume;

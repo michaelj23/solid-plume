@@ -33,11 +33,12 @@ https://github.com/solid/
 
 // WebID authentication and signup
 var Solid = Solid || {};
-Solid.auth = (function(window) {
+var $rdf = require("rdflib");
+Solid.auth = (function() {
     'use strict';
 
    // default (preferred) authentication endpoint
-    var authEndpoint = 'https://databox.me/';
+    var authEndpoint = 'https://mju4.databox.me/';
     var signupEndpoint = 'https://solid.github.io/solid-idps/';
 
     // attempt to find the current user's WebID from the User header if authenticated
@@ -275,7 +276,7 @@ Solid.identity = (function(window) {
 }(this));
 // Events
 Solid = Solid || {};
-Solid.status = (function(window) {
+Solid.status = (function() {
     'use strict';
 
     // Get current online status
@@ -301,7 +302,7 @@ Solid.status = (function(window) {
 }(this));
 // Helper functions
 var Solid = Solid || {};
-Solid.utils = (function(window) {
+Solid.utils = (function() {
     'use strict';
 
     // parse a Link header
@@ -342,7 +343,7 @@ Solid.utils = (function(window) {
 }(this));
 // LDP operations
 var Solid = Solid || {};
-Solid.web = (function(window) {
+Solid.web = (function() {
     'use strict';
 
     // Init some defaults;
@@ -495,3 +496,5 @@ Solid.web = (function(window) {
         del: del,
     };
 }(this));
+
+module.exports = Solid;

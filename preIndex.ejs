@@ -125,29 +125,15 @@
             <div class="float-right"><a href="#" class="action-button">Close</a></div>
         </div>
     </div>
-    
-    
-    
-        
-        
-        <script src="http://localhost:3000/dist/links.bundle.js"
-          integrity="sha256-mR9iZCMegT+O6pehU8ZUz4gHVq1a+QhcLU2vyjjVg/s="
+    <% var bundlesPath = htmlWebpackPlugin.options.bundlesPath; %>
+    <% var bundlesOrigin = htmlWebpackPlugin.options.bundlesOrigin; %>
+    <% for (var chunk in htmlWebpackPlugin.files.chunks) { %>
+        <% var src = htmlWebpackPlugin.files.chunks[chunk].entry; %>
+        <% src = src.substring(bundlesPath.length + 1); %>
+        <script src="<%= bundlesOrigin %>/<%= bundlesPath %>/<%= src %>"
+          integrity="<%= compilation.assets[src].integrity %>"
           crossorigin="anonymous"
         ></script>
-    
-        
-        
-        <script src="http://localhost:3000/dist/dropdown.bundle.js"
-          integrity="sha256-+VScNu4fJGNETtl6dlyLbpjXK4FR2I9Uulp66yybCog="
-          crossorigin="anonymous"
-        ></script>
-    
-        
-        
-        <script src="http://localhost:3000/dist/appSolid.bundle.js"
-          integrity="sha256-MDsGioUPUr1+JDDTD1RJ4IhNRtgnqyH3flLNY0dp/To="
-          crossorigin="anonymous"
-        ></script>
-    
+    <% } %>
 </body>
 </html>

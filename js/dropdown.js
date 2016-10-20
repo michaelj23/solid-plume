@@ -1,4 +1,5 @@
-(function (window, document) {
+// (function (window, document) {
+(function() {
     'use strict';
 
     // Enable drop-down menus in Pure
