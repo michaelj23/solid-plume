@@ -8,6 +8,16 @@ Plume uses [Markdown](https://en.wikipedia.org/wiki/Markdown) to provide you wit
 
 It currently does not support dynamic configuration of data spaces, which means you will have to either run it on your own Web server, or manually upload it to your account -- you can use [https://databox.me]( https://databox.me) as storage. The next version will allow you to run it from Github, like all the other [Solid apps](https://github.com/solid/solid-apps) we currently offer.
 
+## Plume for Atka
+To use Plume as a proof-of-concept app for Atka, we transferred several of its dependencies, such as `rdlib.js`, to their actual npm packages. This caused some issues with these dependencies trying to access the browser environment. To remove these issues, add
+`"browser": {
+    "fs": false,
+    "child_process": false
+  },`
+ to the `package.json`'s of modules `xmlhttprequest` and `typo-js`.
+
+ Plume also has issues with its login. For a quick fix, change `authEndpoint` in `app/solid.js` to `[username].databox.me`.
+
 ## Configuration
 
 Before being able to use Plume, you will have to manually set some config values. First you need to copy/rename the `config-example.json` file to `config.json`. Then you need to set the `postsURL` value to have it point to an **existing** container on a [Solid-friendly server](https://github.com/solid/solid-platform) that holds your blog posts. Finally, you should also set the `owners` variable by adding your own WebID, in order to be able to access the editor UI and to create new posts.
